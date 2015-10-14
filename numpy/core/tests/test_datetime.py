@@ -776,6 +776,13 @@ class TestDateTime(TestCase):
             # The ufuncs always produce native-endian results
             assert_
 
+    def test_isfinite(self):
+        assert_(np.isfinite(np.timedelta(1, 'h')))
+        assert_(np.isfinite(np.datetime64('2000-01-01')))
+        assert_(not np.isfinite(np.datetime64('NaT')))
+        assert_(not np.isfinite(np.datetime64('NaT', 'us')))
+        assert_(not np.isfinite(np.timdelta64('NaT')))
+
     def test_datetime_add(self):
         for dta, dtb, dtc, dtnat, tda, tdb, tdc in \
                     [

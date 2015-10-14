@@ -778,7 +778,7 @@ defdict = {
     Ufunc(1, 1, None,
           docstrings.get('numpy.core.umath.isfinite'),
           None,
-          TD(inexact, out='?'),
+          TD(inexact + times, out='?'),
           ),
 'signbit':
     Ufunc(1, 1, None,
