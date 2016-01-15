@@ -436,6 +436,20 @@ class TestWarns(unittest.TestCase):
         assert_equal(before_filters, after_filters,
                      "assert_warns does not preserver warnings state")
 
+    def test_context_manager(self):
+
+        before_filters = sys.modules['warnings'].filters[:]
+        with assert_warns(UserWarning):
+            warnings.warn("yo")
+        after_filters = sys.modules['warnings'].filters
+
+        with assert_raises(AssertionError):
+            with assert_no_warnings():
+                warnings.warn("yo")
+
+        assert_equal(before_filters, after_filters,
+                     "assert_warns does not preserver warnings state")
+
     def test_warn_wrong_warning(self):
         def f():
             warnings.warn("yo", DeprecationWarning)
