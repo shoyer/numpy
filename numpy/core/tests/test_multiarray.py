@@ -2974,7 +2974,8 @@ class TestBinop(object):
                                      "__array_ufunc__")
                     else:
                         if (isinstance(obj, np.ndarray) and
-                                not hasattr(obj, "__array_ufunc__")):
+                            (type(obj).__array_ufunc__ is
+                             np.ndarray.__array_ufunc__)):
                             # __array__ gets ignored
                             res = norm(arr_method(obj))
                             assert_(res.__class__ is obj.__class__)
@@ -2990,7 +2991,8 @@ class TestBinop(object):
                             assert_equal(res[1], ufunc)
                     else:
                         if (isinstance(obj, np.ndarray) and
-                                not hasattr(obj, "__array_ufunc__")):
+                            (type(obj).__array_ufunc__ is
+                             np.ndarray.__array_ufunc__)):
                             # __array__ gets ignored
                             res = norm(arr_rmethod(obj))
                             assert_(res.__class__ is obj.__class__)
@@ -3011,7 +3013,8 @@ class TestBinop(object):
                                 assert_(res[-1]["out"][0] is arr)
                         else:
                             if (isinstance(obj, np.ndarray) and
-                                    not hasattr(obj, "__array_ufunc__")):
+                                (type(obj).__array_ufunc__ is
+                                 np.ndarray.__array_ufunc__)):
                                 # __array__ gets ignored
                                 assert_(arr_imethod(obj) is arr)
                             else:
