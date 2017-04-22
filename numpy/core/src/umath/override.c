@@ -258,7 +258,7 @@ PyUFunc_CheckOverride(PyUFuncObject *ufunc, char *method,
         out = PyDict_GetItemString(normal_kwds, "out");
         if (out != NULL) {
             int nout = ufunc->nout;
-            
+
             if (PyTuple_Check(out)) {
                 int all_none = 1;
 
@@ -429,8 +429,14 @@ PyUFunc_CheckOverride(PyUFuncObject *ufunc, char *method,
         /* Check if there is a method left to call */
         if (!override_obj) {
             /* No acceptable override found. */
-            PyErr_SetString(PyExc_TypeError,
-                            "__array_ufunc__ not implemented for this type.");
+            PyErr_Format(
+                PyExc_TypeError,
+                "__array_ufunc__ not implemented for ufunc=%R, "
+                "method=%R, *inputs=%R, **kwargs=%R",
+                PyTuple_GET_ITEM(override_args, 0),
+                PyTuple_GET_ITEM(override_args, 1),
+                PyTuple_GetSlice(override_args, 2, NULL),
+                normal_kwds);
             goto fail;
         }
 
