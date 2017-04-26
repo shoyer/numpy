@@ -115,6 +115,9 @@ class NDArrayOperatorsMixin(object):
                     # one return value
                     return type(self)(result)
 
+            def __repr__(self):
+                return '%s(%r)' % (type(self).__name__, self.value)
+
     In interactions between ``ArrayLike`` objects and numbers or numpy arrays,
     the result is always another ``ArrayLike``:
 
