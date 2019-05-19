@@ -5,6 +5,7 @@ Utility function to facilitate testing.
 from __future__ import division, absolute_import, print_function
 
 import os
+import functools
 import sys
 import platform
 import re
@@ -21,7 +22,14 @@ import pprint
 
 from numpy.core import(
      intp, float32, empty, arange, array_repr, ndarray, isnat, array)
+from numpy.core import overrides
+
 from numpy.lib.utils import deprecate
+
+
+array_function_dispatch = functools.partial(
+    overrides.array_function_dispatch, module='numpy.testing')
+
 
 if sys.version_info[0] >= 3:
     from io import StringIO
@@ -293,6 +301,11 @@ def build_err_msg(arrays, err_msg, header='Items are not equal:',
     return '\n'.join(msg)
 
 
+def _assert_equal_dispatcher(actual, desired, err_msg=None, verbose=None):
+    return (actual, desired)
+
+
+@array_function_dispatch(_assert_equal_dispatcher)
 def assert_equal(actual, desired, err_msg='', verbose=True):
     """
     Raises an AssertionError if two objects are not equal.
@@ -475,7 +488,13 @@ def print_assert_equal(test_string, actual, desired):
         raise AssertionError(msg.getvalue())
 
 
-def assert_almost_equal(actual,desired,decimal=7,err_msg='',verbose=True):
+def _assert_almost_equal_dispatcher(
+        actual, desired, decimal=None, err_msg=None, verbose=None):
+    return (actual, desired)
+
+
+@array_function_dispatch(_assert_almost_equal_dispatcher)
+def assert_almost_equal(actual, desired, decimal=7, err_msg='', verbose=True):
     """
     Raises an AssertionError if two items are not equal up to desired
     precision.
@@ -600,7 +619,15 @@ def assert_almost_equal(actual,desired,decimal=7,err_msg='',verbose=True):
         raise AssertionError(_build_err_msg())
 
 
-def assert_approx_equal(actual,desired,significant=7,err_msg='',verbose=True):
+
+def _assert_approx_equal_dispatcher(
+        actual, desired, significant=None, err_msg=None, verbose=None):
+    return (actual, desired)
+
+
+@array_function_dispatch(_assert_approx_equal_dispatcher)
+def assert_approx_equal(
+        actual, desired, significant=7, err_msg='', verbose=True):
     """
     Raises an AssertionError if two items are not equal up to significant
     digits.
@@ -836,6 +863,11 @@ def assert_array_compare(comparison, x, y, err_msg='', verbose=True,
         raise ValueError(msg)
 
 
+def _assert_array_equal_dispatcher(x, y, err_msg=None, verbose=None):
+    return (x, y)
+
+
+@array_function_dispatch(_assert_array_equal_dispatcher)
 def assert_array_equal(x, y, err_msg='', verbose=True):
     """
     Raises an AssertionError if two array_like objects are not equal.
@@ -905,6 +937,12 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
                          verbose=verbose, header='Arrays are not equal')
 
 
+def _assert_array_almost_equal_dispatcher(
+        x, y, decimal=None, err_msg=None, verbose=None):
+    return (x, y)
+
+
+@array_function_dispatch(_assert_array_almost_equal_dispatcher)
 def assert_array_almost_equal(x, y, decimal=6, err_msg='', verbose=True):
     """
     Raises an AssertionError if two objects are not equal up to desired
@@ -1016,6 +1054,11 @@ def assert_array_almost_equal(x, y, decimal=6, err_msg='', verbose=True):
              precision=decimal)
 
 
+def _assert_array_less_dispatcher(x, y, err_msg=None, verbose=None):
+    return (x, y)
+
+
+@array_function_dispatch(_assert_array_less_dispatcher)
 def assert_array_less(x, y, err_msg='', verbose=True):
     """
     Raises an AssertionError if two array_like objects are not ordered by less
@@ -1444,6 +1487,13 @@ def _assert_valid_refcount(op):
     del d  # for pyflakes
 
 
+def _assert_allclose_dispatcher(
+        actual, desired, rtol=None, atol=None, equal_nan=None,
+        err_msg=None, verbose=None):
+    return (actual, desired)
+
+
+@array_function_dispatch(_assert_allclose_dispatcher)
 def assert_allclose(actual, desired, rtol=1e-7, atol=0, equal_nan=True,
                     err_msg='', verbose=True):
     """
@@ -1502,6 +1552,12 @@ def assert_allclose(actual, desired, rtol=1e-7, atol=0, equal_nan=True,
                          verbose=verbose, header=header, equal_nan=equal_nan)
 
 
+def _assert_array_almost_equal_nulp_dispatcher(
+        x, y, nulp=None):
+    return (x, y)
+
+
+@array_function_dispatch(_assert_array_almost_equal_nulp_dispatcher)
 def assert_array_almost_equal_nulp(x, y, nulp=1):
     """
     Compare two arrays relatively to their spacing.
@@ -1565,6 +1621,11 @@ def assert_array_almost_equal_nulp(x, y, nulp=1):
         raise AssertionError(msg)
 
 
+def _assert_array_max_ulp_dispatcher(a, b, maxulp=None, dtype=None):
+    return (a, b)
+
+
+@array_function_dispatch(_assert_array_max_ulp_dispatcher)
 def assert_array_max_ulp(a, b, maxulp=1, dtype=None):
     """
     Check that all items of arrays differ in at most N Units in the Last Place.
