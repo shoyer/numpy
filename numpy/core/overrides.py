@@ -1,10 +1,11 @@
 """Implementation of __array_function__ overrides from NEP-18."""
 import collections
+import contextlib
 import functools
 import textwrap
 
 from numpy.core._multiarray_umath import (
-    add_docstring, implement_array_function, _get_implementing_args)
+     add_docstring, implement_array_function, ndarray,_get_implementing_args)
 from numpy.compat._inspect import getargspec
 
 
@@ -104,6 +105,9 @@ def set_module(module):
     return decorator
 
 
+_ENTERED = [False]
+
+
 def array_function_dispatch(dispatcher, module=None, verify=True,
                             docs_from_dispatcher=False):
     """Decorator for adding dispatch with the __array_function__ protocol.
@@ -149,18 +153,39 @@ def array_function_dispatch(dispatcher, module=None, verify=True,
         # more interpettable name. Otherwise, the original function does not
         # show up at all in many cases, e.g., if it's written in C or if the
         # dispatcher gets an invalid keyword argument.
-        source = textwrap.dedent("""
-        @functools.wraps(implementation)
-        def {name}(*args, **kwargs):
-            relevant_args = dispatcher(*args, **kwargs)
-            return implement_array_function(
-                implementation, {name}, relevant_args, args, kwargs)
-        """).format(name=implementation.__name__)
+        if True:
+            source = textwrap.dedent("""
+            _all = all  # save the builtin all
+
+            @functools.wraps(implementation)
+            def {name}(*args, **kwargs):
+                relevant_args = dispatcher(*args, **kwargs)
+                assert (not entered[0] or
+                        _all(not hasattr(arg, '__array_function__')
+                             # or isinstance(arg, ndarray)
+                             for arg in relevant_args))
+                entered[0] = True
+                try:
+                    return implement_array_function(
+                        implementation, {name}, relevant_args, args, kwargs)
+                finally:
+                    entered[0] = False
+            """).format(name=implementation.__name__)
+        else:
+            source = textwrap.dedent("""
+            @functools.wraps(implementation)
+            def {name}(*args, **kwargs):
+                relevant_args = dispatcher(*args, **kwargs)
+                return implement_array_function(
+                    implementation, {name}, relevant_args, args, kwargs)
+            """).format(name=implementation.__name__)
 
         source_object = compile(
             source, filename='<__array_function__ internals>', mode='exec')
         scope = {
             'implementation': implementation,
+            'entered': _ENTERED,
+            'ndarray': ndarray,
             'dispatcher': dispatcher,
             'functools': functools,
             'implement_array_function': implement_array_function,

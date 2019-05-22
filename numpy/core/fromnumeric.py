@@ -1354,7 +1354,7 @@ def resize(a, new_shape):
     """
     if isinstance(new_shape, (int, nt.integer)):
         new_shape = (new_shape,)
-    a = ravel(a)
+    a = ravel.__skip_array_function__(a)
     Na = len(a)
     total_size = um.multiply.reduce(new_shape)
     if Na == 0 or total_size == 0:
@@ -1367,11 +1367,11 @@ def resize(a, new_shape):
         n_copies = n_copies + 1
         extra = Na - extra
 
-    a = concatenate((a,) * n_copies)
+    a = concatenate.__skip_array_function__((a,) * n_copies)
     if extra > 0:
         a = a[:-extra]
 
-    return reshape(a, new_shape)
+    return reshape.__skip_array_function__(a, new_shape)
 
 
 def _squeeze_dispatcher(a, axis=None):
