@@ -18,12 +18,21 @@ get_ndarray_array_function(void)
 }
 
 
+static PyObject *
+lookup_special_no_exceptions(PyObject *obj, char *name) {
+    array_function = PyArray_LookupSpecial(obj, name);
+    if (array_function == NULL && PyErr_Occurred()) {
+        PyErr_Clear(); /* TODO[gh-14801]: propagate crashes during attribute access? */
+    }
+    return array_function;
+}
+
 /*
  * Get an object's __array_function__ method in the fastest way possible.
  * Never raises an exception. Returns NULL if the method doesn't exist.
  */
 static PyObject *
-get_array_function(PyObject *obj)
+get_array_function(PyObject *obj, int numpy_api)
 {
     static PyObject *ndarray_array_function = NULL;
     PyObject *array_function;
@@ -38,11 +47,18 @@ get_array_function(PyObject *obj)
         return ndarray_array_function;
     }
 
-    array_function = PyArray_LookupSpecial(obj, "__array_function__");
-    if (array_function == NULL && PyErr_Occurred()) {
-        PyErr_Clear(); /* TODO[gh-14801]: propagate crashes during attribute access? */
+    if (numpy_api) {
+        array_function = lookup_special_no_exceptions(
+            obj, "__array_function_api__");
+        if (array_function == NULL) {
+            array_function = lookup_special_no_exceptions(
+                obj, "__array_function__");
+        }
     }
-
+    else {
+        array_function = lookup_special_no_exceptions(
+            obj, "__array_function__");
+    }
     return array_function;
 }
 
@@ -71,7 +87,8 @@ pyobject_array_insert(PyObject **array, int length, int index, PyObject *item)
 static int
 get_implementing_args_and_methods(PyObject *relevant_args,
                                   PyObject **implementing_args,
-                                  PyObject **methods)
+                                  PyObject **methods,
+                                  int numpy_api)
 {
     int num_implementing_args = 0;
     Py_ssize_t i;
@@ -92,7 +109,7 @@ get_implementing_args_and_methods(PyObject *relevant_args,
             }
         }
         if (new_class) {
-            PyObject *method = get_array_function(argument);
+            PyObject *method = get_array_function(argument, numpy_api);
 
             if (method != NULL) {
                 int arg_index;
@@ -216,6 +233,24 @@ NPY_NO_EXPORT PyObject *
 array_implement_array_function(
     PyObject *NPY_UNUSED(dummy), PyObject *positional_args)
 {
+    int numpy_api = 0;
+    return array_implement_array_function_both(positional_args, numpy_api);
+}
+
+
+NPY_NO_EXPORT PyObject *
+array_implement_array_function_api(
+    PyObject *NPY_UNUSED(dummy), PyObject *positional_args)
+{
+    int numpy_api = 1;
+    return array_implement_array_function_both(positional_args, numpy_api);
+}
+
+
+NPY_NO_EXPORT PyObject *
+array_implement_array_function_both(
+    PyObject *positional_args, int numpy_api)
+{
     PyObject *implementation, *public_api, *relevant_args, *args, *kwargs;
 
     PyObject *types = NULL;
@@ -243,7 +278,7 @@ array_implement_array_function(
 
     /* Collect __array_function__ implementations */
     num_implementing_args = get_implementing_args_and_methods(
-        relevant_args, implementing_args, array_function_methods);
+        relevant_args, implementing_args, array_function_methods, numpy_api);
     if (num_implementing_args == -1) {
         goto cleanup;
     }
@@ -337,14 +372,15 @@ array__get_implementing_args(
     PyObject *NPY_UNUSED(dummy), PyObject *positional_args)
 {
     PyObject *relevant_args;
+    int numpy_api;
     int j;
     int num_implementing_args = 0;
     PyObject *implementing_args[NPY_MAXARGS];
     PyObject *array_function_methods[NPY_MAXARGS];
     PyObject *result = NULL;
 
-    if (!PyArg_ParseTuple(positional_args, "O:array__get_implementing_args",
-                          &relevant_args)) {
+    if (!PyArg_ParseTuple(positional_args, "Oi:array__get_implementing_args",
+                          &relevant_args, &numpy_api)) {
         return NULL;
     }
 
@@ -356,7 +392,7 @@ array__get_implementing_args(
     }
 
     num_implementing_args = get_implementing_args_and_methods(
-        relevant_args, implementing_args, array_function_methods);
+        relevant_args, implementing_args, array_function_methods, numpy_api);
     if (num_implementing_args == -1) {
         goto cleanup;
     }
